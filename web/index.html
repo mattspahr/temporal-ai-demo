@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Support Agent</title>
+<style>
+  :root {
+    --bg: #161618;          /* soft charcoal */
+    --panel: #202023;
+    --panel-2: #26262a;
+    --border: #2e2e33;
+    --text: #d9d9de;        /* off-white, not pure white */
+    --muted: #84848c;
+    --purple: #6f5bd0;      /* muted temporal purple — small accents only */
+    --red: #c47878;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+
+  main { flex: 1; overflow-y: auto; padding: 48px 24px 24px; }
+  #chat { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  /* centered hero, like the reference */
+  #hero { text-align: center; margin-bottom: 28px; }
+  #hero svg { width: 44px; height: 44px; stroke: var(--text); }
+  #hero h1 { font-size: 40px; font-weight: 300; letter-spacing: .5px; margin: 14px 0 6px; }
+  #hero .sub { color: var(--muted); font-size: 15px; margin: 0; }
+  #conv-id { display: block; margin-top: 14px; }
+  #conv-id a {
+    display: inline-block; text-decoration: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px 14px;
+  }
+  #conv-id a .label { color: var(--muted); opacity: .7; }
+  #conv-id a:hover { color: var(--text); border-color: var(--purple); }
+
+  /* pill bubbles — tone-on-tone, no hard contrast */
+  .msg { max-width: 78%; padding: 12px 20px; border-radius: 26px; white-space: pre-wrap; }
+  .msg.assistant {
+    align-self: flex-start; background: var(--panel-2); color: var(--text);
+    border-bottom-left-radius: 8px;
+    white-space: normal;   /* assistant messages render markdown blocks */
+  }
+  .msg.assistant p { margin: 0 0 8px; }
+  .msg.assistant p:last-child { margin-bottom: 0; }
+  .msg.assistant ul, .msg.assistant ol { margin: 4px 0 8px; padding-left: 22px; }
+  .msg.assistant ul:last-child, .msg.assistant ol:last-child { margin-bottom: 0; }
+  .msg.assistant li { margin: 2px 0; }
+  .msg.assistant strong { color: #eceff4; }
+  .msg.assistant code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+    background: rgba(255, 255, 255, .06); padding: 1px 6px; border-radius: 6px;
+  }
+  .msg.assistant table { border-collapse: collapse; margin: 6px 0 8px; font-size: 14px; }
+  .msg.assistant table:last-child { margin-bottom: 0; }
+  .msg.assistant th, .msg.assistant td {
+    border: 1px solid var(--border); padding: 5px 12px; text-align: left;
+  }
+  .msg.assistant th { color: #eceff4; font-weight: 600; background: rgba(255, 255, 255, .03); }
+  .msg.user {
+    align-self: flex-end; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-bottom-right-radius: 8px;
+  }
+  .msg.typing { background: transparent; border: 0; color: var(--muted); font-style: italic; }
+
+  .approval-card {
+    align-self: flex-start; max-width: 78%;
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--purple); border-radius: 20px;
+    padding: 16px 20px;
+  }
+  .approval-card .title { font-weight: 600; margin-bottom: 4px; }
+  .approval-card .desc { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .approval-card button { margin-right: 8px; }
+
+  /* pill composer with round send button, like the reference */
+  footer { padding: 16px 24px 28px; flex-shrink: 0; }
+  #composer {
+    max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 999px; padding: 6px 6px 6px 22px;
+  }
+  #composer:focus-within { border-color: #3d3d45; }
+  #composer input {
+    flex: 1; background: transparent; border: 0; color: var(--text);
+    font-size: 16px; outline: none;
+  }
+  #composer input::placeholder { color: var(--muted); }
+  #send {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: var(--purple); color: #fff; border: 0; cursor: pointer;
+    font-size: 19px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  #send:disabled { opacity: .45; cursor: default; }
+
+  button.pill {
+    background: var(--purple); color: #fff; border: 0; border-radius: 999px;
+    padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.pill:disabled { opacity: .45; cursor: default; }
+  button.reject {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.reject:hover { color: var(--text); border-color: var(--muted); }
+
+  /* start overlay */
+  #start {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #start form { width: 400px; text-align: center; display: flex; flex-direction: column; gap: 16px; }
+  #start svg { width: 44px; height: 44px; stroke: var(--text); margin: 0 auto; }
+  #start h2 { font-size: 34px; font-weight: 300; margin: 6px 0 0; }
+  #start p  { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  #start input {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    border-radius: 999px; padding: 13px 22px; font-size: 15px; outline: none; text-align: center;
+  }
+  #start input:focus { border-color: var(--purple); }
+
+  #error {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--border); color: var(--red);
+    padding: 10px 16px; border-radius: 999px; font-size: 13px; display: none;
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <div id="chat">
+    <div id="hero">
+      <svg viewBox="0 0 48 48" fill="none" stroke-width="2.2">
+        <ellipse cx="24" cy="24" rx="8.5" ry="20"/>
+        <ellipse cx="24" cy="24" rx="20" ry="8.5"/>
+      </svg>
+      <h1>Customer Support Agent</h1>
+      <p class="sub">Powered by Temporal</p>
+      <span id="conv-id"></span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <form id="composer">
+    <input id="input" placeholder="Reply…" autocomplete="off" disabled>
+    <button id="send" type="submit" disabled aria-label="Send">↑</button>
+  </form>
+</footer>
+
+<div id="start">
+  <form id="start-form">
+    <svg viewBox="0 0 48 48" fill="none" stroke-width="2.2">
+      <ellipse cx="24" cy="24" rx="8.5" ry="20"/>
+      <ellipse cx="24" cy="24" rx="20" ry="8.5"/>
+    </svg>
+    <h2>Customer Support Agent</h2>
+    <p>Powered by Temporal</p>
+    <input id="email" type="email" placeholder="customer email" value="sa@temporal.io" required>
+    <button class="pill" type="submit">Start</button>
+  </form>
+</div>
+
+<div id="error"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

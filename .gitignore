@@ -1,0 +1,25 @@
+# secrets / local config
+.env
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# node / typescript
+node_modules/
+dist/
+*.tsbuildinfo
+
+# logs & scratch
+*.log
+nohup.out
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
